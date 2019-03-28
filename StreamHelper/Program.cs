@@ -57,7 +57,9 @@ namespace StreamHelper
 
 		static async Task TweetUpdate(string message)
 		{
-			var api = new TwitterApi ("twitter", ApiConstants.TwitterApiKey, ApiConstants.TwitterSecret);
+			var api = new TwitterApi ("twitter", ApiConstants.TwitterApiKey, ApiConstants.TwitterSecret) {
+				RedirectUrl = new Uri("http://localhost"),
+			};
 
 			var resp = await api.Post (null, "statuses/update.json", new Dictionary<string, string> {
 				["status"] = $"{message} follow along at twitch.tv/Clancey"
