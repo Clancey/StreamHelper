@@ -26,9 +26,6 @@ namespace StreamHelper {
 			Console.WriteLine ("Welcome to the Stream Helper!");
 			//Console.WriteLine ($"Args: {String.Join (" ,", args)}");
 
-			var s = await UploadPhoto ("https://static-cdn.jtvnw.net/previews-ttv/live_user_clancey-1280x720.jpg");
-			return;
-
 
 			string message = null;
 			bool show_help = false;
@@ -126,13 +123,22 @@ namespace StreamHelper {
 					return false;
 				}
 
-				var api = GetTwitterApi ();
+				//TODO: Configure upload image turn off
+				var imageUrl = await GetTwitchLiveFeedImageUrl ();
+				var mediaId = await UploadPhoto (imageUrl);
 
-				var resp = await api.Post (null, "statuses/update.json", new Dictionary<string, string> {
-					["status"] = $"{message} follow along at twitch.tv/Clancey"
-				});
+				var api = GetTwitterApi ();
+				var twitchUrl = await GetTwitchStreamUrl ();
+				var tweetData = new Dictionary<string, string> {
+					["status"] = $"{message} follow along at {twitchUrl}",
+				};
+				if (!string.IsNullOrWhiteSpace (mediaId))
+					tweetData ["media_ids"] = mediaId;
+
+				var resp = await api.Post (null, "statuses/update.json", tweetData);
 				Console.WriteLine ("Tweeting was Successful");
 				Console.WriteLine (resp);
+				Settings.LastTweetTime = DateTime.Now;
 				return true;
 			} catch (Exception ex) {
 				Console.WriteLine ("Failed to update Twitter");
@@ -140,6 +146,23 @@ namespace StreamHelper {
 				return false;
 			}
 		}
+
+		static async Task<string> GetTwitchLiveFeedImageUrl()
+		{
+			var api = GetTwitchApi ();
+			var user = await api.GetUserInfo ();
+			return $"https://static-cdn.jtvnw.net/previews-ttv/live_user_{user.Login}-1280x720.jpg";
+		}
+
+
+		static async Task<string> GetTwitchStreamUrl ()
+		{
+			var api = GetTwitchApi ();
+			var user = await api.GetUserInfo ();
+			return $"twitch.tv/{user.Login}";
+		}
+
+
 		static HttpClient httpClient = new HttpClient ();
 		public static async Task<string> UploadPhoto (string url)
 		{
@@ -163,10 +186,6 @@ namespace StreamHelper {
 			}
 			return null;
 		}
-
-		static IEnumerable<KeyValuePair<string, string>> ToKeyValuePairs (Dictionary<string, string> dictionary) => dictionary.Select (x => new KeyValuePair<string, string> (x.Key, x.Value));
-
-
 
 		static TwitterApi twitterApi;
 		static TwitterApi GetTwitterApi () => twitterApi ?? (twitterApi = new TwitterApi (Settings.Profile, ApiConstants.TwitterApiKey, ApiConstants.TwitterSecret) {
