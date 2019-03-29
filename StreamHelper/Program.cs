@@ -7,20 +7,26 @@ using SimpleAuth.Providers;
 using System.Collections.Generic;
 using Mono.Options;
 using System.Diagnostics;
+using System.Net.Http;
+using System.Web;
 
 namespace StreamHelper {
 	class Program {
 		static async Task Main (string [] args)
 		{
-			Console.WriteLine ("Welcome to the Stream Helper!");
-			Console.WriteLine ($"Args: {String.Join(" ,", args)}");
-
 			Resolver.Register<IAuthStorage, AuthStorage> ();
 			OAuthApi.ShowAuthenticator = async (auth) => {
 
 				var authenticator = new OAuthController (auth);
 				await authenticator.GetCredentials (auth.Title);
 			};
+
+
+			Console.WriteLine ("Welcome to the Stream Helper!");
+			//Console.WriteLine ($"Args: {String.Join (" ,", args)}");
+
+			//var s = await UploadPhoto ("https://static-cdn.jtvnw.net/previews-ttv/live_user_clancey-1280x720.jpg");
+			//return;
 
 
 			string message = null;
@@ -46,18 +52,18 @@ namespace StreamHelper {
 				ShowHelp (p);
 				return;
 			}
-			
-			if(show_help || (args?.Length ?? 0) == 0) {
+
+			if (show_help || (args?.Length ?? 0) == 0) {
 				ShowHelp (p);
 				return;
 			}
 
-			if(shouldLogOut) {
+			if (shouldLogOut) {
 				GetTwitchApi ().Logout ();
 				GetTwitterApi ().Logout ();
 			}
 
-			if(string.IsNullOrWhiteSpace(message)) {
+			if (string.IsNullOrWhiteSpace (message)) {
 				if (!shouldLogOut)
 					ShowHelp (p);
 				return;
@@ -114,12 +120,12 @@ namespace StreamHelper {
 		{
 			try {
 				var timeSinceTweet = DateTime.Now - Settings.LastTweetTime;
-				if (timeSinceTweet < TimeSpan.FromMinutes(5)) {
+				if (timeSinceTweet < TimeSpan.FromMinutes (5)) {
 					Console.WriteLine ($"Skipped Tweeting, too soon. Tweeted: {timeSinceTweet}");
 					return false;
 				}
 
-				var api = GetTwitterApi();
+				var api = GetTwitterApi ();
 
 				var resp = await api.Post (null, "statuses/update.json", new Dictionary<string, string> {
 					["status"] = $"{message} follow along at twitch.tv/Clancey"
@@ -127,27 +133,67 @@ namespace StreamHelper {
 				Console.WriteLine ("Tweeting was Successful");
 				Console.WriteLine (resp);
 				return true;
-			}
-			catch(Exception ex) {
+			} catch (Exception ex) {
 				Console.WriteLine ("Failed to update Twitter");
 				Console.WriteLine (ex);
 				return false;
 			}
 		}
+		static HttpClient httpClient = new HttpClient ();
+		public static async Task<string> UploadPhoto (string url)
+		{
+			const string path = "https://upload.twitter.com/1.1/media/upload.json";
+			try {
+				var imageResponse = await httpClient.GetAsync (url);
+				var data = await imageResponse.Content.ReadAsByteArrayAsync ();
+				var api = GetTwitterApi ();
+				var encoded = Convert.ToBase64String (data);
+
+				var parameters = new Dictionary<string, string> {
+					["Name"] = url,
+					["command"] = "INIT",
+					["total_bytes"] = data.Length.ToString (),
+					["media_type"] = "image/jpg",
+				};
+				var init = await api.Post<Dictionary<string, string>> (null, path,queryParameters:parameters,authenticated:true);
+				var mediaId = init ["media_id"];
+
+				parameters = new Dictionary<string, string> {
+					["Name"] = url,
+					["command"] = "APPEND",
+					["media_id"] = mediaId,
+					["segment_index"] = "0",
+				};
+				var multipartContent = new MultipartFormDataContent ();
+				multipartContent.Add (new FormUrlEncodedContent (ToKeyValuePairs (parameters)));
+				multipartContent.Add (new ByteArrayContent (data), "media_id");
+				var result = await api.Post (new FormUrlEncodedContent (ToKeyValuePairs (parameters)), path);
+
+				return mediaId;
+				Console.WriteLine (result);
+			} catch (Exception ex) {
+				Console.WriteLine (ex);
+			}
+			return null;
+		}
+
+		static IEnumerable<KeyValuePair<string, string>> ToKeyValuePairs (Dictionary<string, string> dictionary) => dictionary.Select (x => new KeyValuePair<string, string> (x.Key, x.Value));
+
+
 
 		static TwitterApi twitterApi;
 		static TwitterApi GetTwitterApi () => twitterApi ?? (twitterApi = new TwitterApi (Settings.Profile, ApiConstants.TwitterApiKey, ApiConstants.TwitterSecret) {
 			RedirectUrl = new Uri ("http://localhost"),
 		});
 
-
 		static TwitchApi twitchApi;
-		static TwitchApi GetTwitchApi()=> twitchApi ?? (twitchApi = new TwitchApi (Settings.Profile, ApiConstants.TwitchApiKey, ApiConstants.TwitchSecret) {
+		static TwitchApi GetTwitchApi () => twitchApi ?? (twitchApi = new TwitchApi (Settings.Profile, ApiConstants.TwitchApiKey, ApiConstants.TwitchSecret) {
 			Scopes = new [] {
 					"clips:edit",
 					"user:edit",
 					"user:edit:broadcast",
 				},
 		});
+
 	}
 }

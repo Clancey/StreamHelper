@@ -4,7 +4,7 @@
     <TargetFramework>netcoreapp2.1</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Clancey.SimpleAuth" Version="1.0.50-rc" />
+    <PackageReference Include="Clancey.SimpleAuth" Version="1.0.51" />
     <PackageReference Include="Newtonsoft.Json" Version="12.0.1" />
     <PackageReference Include="Xam.Plugins.Settings" Version="4.1.0-beta" />
     <PackageReference Include="Mono.Options.Core" Version="1.0.0" />

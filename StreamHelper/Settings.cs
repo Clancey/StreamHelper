@@ -22,5 +22,9 @@ namespace StreamHelper {
 			set => CurrentSettings.AddOrUpdateValue (nameof (LastTweetTime), value);
 		}
 
+		public static string TwitchProfile {
+			get => CurrentSettings.GetValueOrDefault (nameof (TwitchProfile), "Default");
+			set => CurrentSettings.AddOrUpdateValue (nameof (TwitchProfile), value);
+		}
 	}
 }
