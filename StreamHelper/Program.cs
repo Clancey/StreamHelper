@@ -9,6 +9,7 @@ using Mono.Options;
 using System.Diagnostics;
 using System.Net.Http;
 using System.Web;
+using System.Net.Http.Headers;
 
 namespace StreamHelper {
 	class Program {
@@ -25,8 +26,8 @@ namespace StreamHelper {
 			Console.WriteLine ("Welcome to the Stream Helper!");
 			//Console.WriteLine ($"Args: {String.Join (" ,", args)}");
 
-			//var s = await UploadPhoto ("https://static-cdn.jtvnw.net/previews-ttv/live_user_clancey-1280x720.jpg");
-			//return;
+			var s = await UploadPhoto ("https://static-cdn.jtvnw.net/previews-ttv/live_user_clancey-1280x720.jpg");
+			return;
 
 
 			string message = null;
@@ -144,33 +145,19 @@ namespace StreamHelper {
 		{
 			const string path = "https://upload.twitter.com/1.1/media/upload.json";
 			try {
+				//Download the image
 				var imageResponse = await httpClient.GetAsync (url);
 				var data = await imageResponse.Content.ReadAsByteArrayAsync ();
 				var api = GetTwitterApi ();
-				var encoded = Convert.ToBase64String (data);
-
-				var parameters = new Dictionary<string, string> {
-					["Name"] = url,
-					["command"] = "INIT",
-					["total_bytes"] = data.Length.ToString (),
-					["media_type"] = "image/jpg",
+				//Upload it to twitter!
+				var imageContent = new ByteArrayContent (data);
+				imageContent.Headers.ContentType = new MediaTypeHeaderValue ("multipart/form-data");
+				var multipartContent = new MultipartFormDataContent {
+					{ imageContent, "media" }
 				};
-				var init = await api.Post<Dictionary<string, string>> (null, path,queryParameters:parameters,authenticated:true);
-				var mediaId = init ["media_id"];
+				var result = await api.Post<Dictionary<string, string>> (multipartContent, path);
+				var mediaId = result ["media_id"];
 
-				parameters = new Dictionary<string, string> {
-					["Name"] = url,
-					["command"] = "APPEND",
-					["media_id"] = mediaId,
-					["segment_index"] = "0",
-				};
-				var multipartContent = new MultipartFormDataContent ();
-				multipartContent.Add (new FormUrlEncodedContent (ToKeyValuePairs (parameters)));
-				multipartContent.Add (new ByteArrayContent (data), "media_id");
-				var result = await api.Post (new FormUrlEncodedContent (ToKeyValuePairs (parameters)), path);
-
-				return mediaId;
-				Console.WriteLine (result);
 			} catch (Exception ex) {
 				Console.WriteLine (ex);
 			}
