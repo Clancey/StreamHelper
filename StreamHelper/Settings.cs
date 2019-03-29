@@ -21,4 +21,5 @@ namespace StreamHelper {
 			get => CurrentSettings.GetValueOrDefault (nameof (LastTweetTime), DateTime.MinValue);
 			set => CurrentSettings.AddOrUpdateValue (nameof (LastTweetTime), value);
 		}
+	}
 }
