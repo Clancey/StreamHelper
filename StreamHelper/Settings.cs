@@ -18,8 +18,22 @@ namespace StreamHelper {
 
 
 		public static DateTime LastTweetTime {
-			get => CurrentSettings.GetValueOrDefault (nameof (LastTweetTime), DateTime.MinValue);
-			set => CurrentSettings.AddOrUpdateValue (nameof (LastTweetTime), value);
+			get => ToDateTime (CurrentSettings.GetValueOrDefault (nameof (LastTweetTime), ""));
+			set => CurrentSettings.AddOrUpdateValue (nameof (LastTweetTime), ToString(value));
+		}
+
+		static DateTime ToDateTime(string s)
+		{
+			if (string.IsNullOrWhiteSpace (s))
+				return DateTime.MinValue;
+			var date = DateTime.Parse (s);
+			return date;
+		}
+
+		static string ToString(DateTime date)
+		{
+			var s = date.ToString ();
+			return s;
 		}
 	}
 }

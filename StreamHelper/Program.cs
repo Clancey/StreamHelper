@@ -86,7 +86,8 @@ namespace StreamHelper {
 			var api = GetTwitchApi ();
 			try {
 				var response = await api.UpdateStreamMarker (message);
-				Console.WriteLine (response);
+				Console.WriteLine ("Twitch updating was Successfull");
+				Debug.WriteLine (response);
 				return true;
 			} catch (Exception ex) {
 				Console.WriteLine ("Failed to update Twitch");
@@ -135,7 +136,7 @@ namespace StreamHelper {
 
 				var resp = await api.Post (null, "statuses/update.json", tweetData);
 				Console.WriteLine ("Tweeting was Successful");
-				Console.WriteLine (resp);
+				Debug.WriteLine (resp);
 				Settings.LastTweetTime = DateTime.Now;
 				return true;
 			} catch (Exception ex) {
