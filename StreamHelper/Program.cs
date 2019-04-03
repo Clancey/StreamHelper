@@ -131,8 +131,13 @@ namespace StreamHelper {
 				var tweetData = new Dictionary<string, string> {
 					["status"] = $"{message} follow along at {twitchUrl}",
 				};
-				if (!string.IsNullOrWhiteSpace (mediaId))
+
+				if (!string.IsNullOrWhiteSpace (mediaId)) {
 					tweetData ["media_ids"] = mediaId;
+					Console.WriteLine ("Tweeting with image 😁");
+				} else {
+					Console.WriteLine ("Tweeting without image 🥵");
+				}
 
 				var resp = await api.Post (null, "statuses/update.json", tweetData);
 				Console.WriteLine ("Tweeting was Successful");
