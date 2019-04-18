@@ -10,6 +10,7 @@ using System.Diagnostics;
 using System.Net.Http;
 using System.Web;
 using System.Net.Http.Headers;
+using Newtonsoft.Json;
 
 namespace StreamHelper {
 	class Program {
@@ -51,7 +52,7 @@ namespace StreamHelper {
 				return;
 			}
 
-			if (show_help || (args?.Length ?? 0) == 0) {
+			if (show_help || (args?.Length ?? 0) == 0 && !Debugger.IsAttached) {
 				ShowHelp (p);
 				return;
 			}
@@ -182,8 +183,8 @@ namespace StreamHelper {
 				var multipartContent = new MultipartFormDataContent {
 					{ imageContent, "media" }
 				};
-				var result = await api.Post<Dictionary<string, string>> (multipartContent, path);
-				var mediaId = result ["media_id"];
+				var result = await api.Post<TwitterImageUploadResponse> (multipartContent, path);
+				return result?.MediaIdString;
 
 			} catch (Exception ex) {
 				Console.WriteLine (ex);
@@ -204,6 +205,36 @@ namespace StreamHelper {
 					"user:edit:broadcast",
 				},
 		});
+		
+
+		public class TwitterImageUploadResponse {
+
+			[JsonProperty ("media_id")]
+			public long MediaId { get; set; }
+
+			[JsonProperty ("media_id_string")]
+			public string MediaIdString { get; set; }
+
+			[JsonProperty ("size")]
+			public int Size { get; set; }
+
+			[JsonProperty ("expires_after_secs")]
+			public int ExpiresAfterSecs { get; set; }
+
+			[JsonProperty ("image")]
+			public ImageClass Image { get; set; }
+			public class ImageClass {
+
+				[JsonProperty ("image_type")]
+				public string ImageType { get; set; }
+
+				[JsonProperty ("w")]
+				public int W { get; set; }
+
+				[JsonProperty ("h")]
+				public int H { get; set; }
+			}
+		}
 
 	}
 }
